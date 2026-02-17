@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>10局制專業計分器</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <style>
+        :root {
+            --bg: #f8f9fa;
+            --card: #ffffff;
+            --primary: #34495e;
+            --accent: #3498db;
+            --valid: #2ecc71;
+            --invalid: #e74c3c;
+        }
+        body {
+            font-family: -apple-system, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .header {
+            width: 100%;
+            max-width: 500px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 5px;
+            margin-bottom: 15px;
+        }
+        .header input {
+            padding: 10px 5px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 0.9rem;
+            background: white;
+        }
+        .table-container {
+            width: 100%;
+            overflow-x: auto;
+            background: var(--card);
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 400px;
+        }
+        th {
+            background: var(--primary);
+            color: white;
+            padding: 12px 5px;
+            font-size: 0.85rem;
+        }
+        td {
+            padding: 8px 5px;
+            border-bottom: 1px solid #eee;
+            text-align: center;
+        }
+        .score-input {
+            width: 45px;
+            height: 35px;
+            text-align: center;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 1rem;
+            -moz-appearance: textfield;
+        }
+        .status-cell { font-weight: bold; font-size: 0.9rem; }
+        .valid { color: var(--valid); }
+        .invalid { color: var(--invalid); background: #fff0f0; }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            width: 100%;
+            max-width: 500px;
+            margin-top: 20px;
+        }
+        .result-card {
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            border-top: 4px solid var(--accent);
+        }
+        .total { font-size: 1.8rem; font-weight: bold; margin: 5px 0; color: var(--primary); }
+        .diff { font-size: 1.1rem; font-weight: bold; }
+        .plus { color: var(--valid); }
+        .minus { color: var(--invalid); }
+        
+        button.reset-btn {
+            margin: 30px 0;
+            padding: 12px 30px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+    </style>
+</head>
+<body>
+
+    <h3 style="margin: 10px 0;">🏆 10局計分網站</h3>
+
+    <div class="header">
+        <input type="text" id="p1_n" value="P1" oninput="update()">
+        <input type="text" id="p2_n" value="P2" oninput="update()">
+        <input type="text" id="p3_n" value="P3" oninput="update()">
+        <input type="text" id="p4_n" value="P4" oninput="update()">
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>局</th>
+                    <th class="l1">P1</th><th class="l2">P2</th><th class="l3">P3</th><th class="l4">P4</th>
+                    <th>總(32)</th>
+                </tr>
+            </thead>
+            <tbody id="gb"></tbody>
+        </table>
+    </div>
+
+    <div class="summary-grid" id="res"></div>
+
+    <button class="reset-btn" onclick="if(confirm('重置所有分數？')) location.reload()">清除所有資料</button>
+
+<script>
+    const gb = document.getElementById('gb');
+    for (let i = 1; i <= 10; i++) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td style="color:#888; font-size:0.8rem">${i}</td>
+            <td><input type="number" class="r-${i} s1 score-input" value="8" oninput="v(${i})"></td>
+            <td><input type="number" class="r-${i} s2 score-input" value="8" oninput="v(${i})"></td>
+            <td><input type="number" class="r-${i} s3 score-input" value="8" oninput="v(${i})"></td>
+            <td><input type="number" class="r-${i} s4 score-input" value="8" oninput="v(${i})"></td>
+            <td id="sum-${i}" class="status-cell valid">32</td>
+        `;
+        gb.appendChild(tr);
+    }
+
+    function v(r) {
+        let s = 0;
+        document.querySelectorAll(`.r-${r}`).forEach(el => s += Number(el.value) || 0);
+        const c = document.getElementById(`sum-${r}`);
+        c.innerText = s;
+        c.className = 'status-cell ' + (s === 32 ? 'valid' : 'invalid');
+        update();
+    }
+
+    function update() {
+        const names = [document.getElementById('p1_n').value, document.getElementById('p2_n').value, document.getElementById('p3_n').value, document.getElementById('p4_n').value];
+        names.forEach((n, i) => { document.querySelectorAll(`.l${i+1}`).forEach(el => el.innerText = n); });
+
+        const totals = [0,0,0,0];
+        for(let i=1; i<=4; i++) {
+            document.querySelectorAll(`.s${i}`).forEach(el => totals[i-1] += Number(el.value) || 0);
+        }
+
+        const container = document.getElementById('res');
+        container.innerHTML = totals.map((t, i) => {
+            const d = t - 80;
+            return `
+                <div class="result-card">
+                    <div style="font-size:0.8rem; color:#666">${names[i]}</div>
+                    <div class="total">${t}</div>
+                    <div class="diff ${d>=0?'plus':'minus'}">${d>=0?'+'+d:d}</div>
+                </div>
+            `;
+        }).join('');
+    }
+    update();
+</script>
+</body>
+</html>
